@@ -1,4 +1,4 @@
-import { escapeHtml, formatTime, groups, labelFor } from './format.js';
+import { dayList, escapeHtml, formatClock, formatTime, groups, labelFor, scheduleLine } from './format.js';
 import { watchState } from './live.js';
 
 const DESK_KEY = 'workshop-desk';
@@ -24,6 +24,13 @@ const chatForm = document.querySelector('#chat-form');
 const chatError = document.querySelector('#chat-error');
 const deskButtons = [...document.querySelectorAll('[data-desk]')];
 const whoLabel = document.querySelector('#who-label');
+const dayplanStatus = document.querySelector('#dayplan-status');
+const dayplanError = document.querySelector('#dayplan-error');
+const dayplanList = document.querySelector('#dayplan-list');
+const dayplanText = document.querySelector('#dayplan-text');
+const dayplanFile = document.querySelector('#dayplan-file');
+const dayplanImport = document.querySelector('#dayplan-import');
+const dayplanSync = document.querySelector('#dayplan-sync');
 
 const acked = new Set(JSON.parse(localStorage.getItem(ACK_KEY) || '[]'));
 const knownAlerts = new Set();
@@ -141,13 +148,30 @@ function actionButtons(car) {
 
 function carRow(car) {
   const name = car.name ? escapeHtml(car.name) : 'No name';
+  const booked = scheduleLine(car);
+  const extra = [name, labelFor(car.status), booked || formatTime(car.updatedAt), car.service].filter(Boolean).join(' · ');
   return `<article class="car">
     <div>
       <p class="plate">${escapeHtml(car.plate)}</p>
-      <p class="meta">${name} · ${escapeHtml(labelFor(car.status))} · ${escapeHtml(formatTime(car.updatedAt))}</p>
+      <p class="meta">${escapeHtml(extra)}</p>
     </div>
     <div class="row-actions">${actionButtons(car)}</div>
   </article>`;
+}
+
+function renderDayplan(cars, dayplan = {}) {
+  const booked = dayList(cars).filter((car) => car.scheduledStart);
+  const when = dayplan.importedAt ? formatTime(dayplan.importedAt) : '';
+  if (dayplan.bookings) {
+    dayplanStatus.textContent = `${dayplan.label || 'Tirehotel'} · ${dayplan.bookings} cars for ${dayplan.date}${when ? ` · loaded ${when}` : ''}`;
+  } else {
+    dayplanStatus.textContent = 'Load the same day list you print for the crew. Customers then see plates and ready times on /status.';
+  }
+  dayplanList.innerHTML = booked.map((car) => `<div class="plan-row ${car.status}">
+    <time>${escapeHtml(formatClock(car.scheduledStart))}${car.scheduledEnd ? `–${escapeHtml(formatClock(car.scheduledEnd))}` : ''}</time>
+    <strong>${escapeHtml(car.plate)}</strong>
+    <span>${escapeHtml([car.name, car.service, labelFor(car.status)].filter(Boolean).join(' · '))}</span>
+  </div>`).join('') || '<p class="empty-note">No timed bookings on the board yet.</p>';
 }
 
 function renderCars(cars) {
@@ -250,6 +274,40 @@ chatForm.addEventListener('submit', async (event) => {
   }
 });
 
+async function importDayplan(text) {
+  showError(dayplanError, null);
+  try {
+    const result = await request('/api/dayplan/import', { method: 'POST', body: JSON.stringify({ text }) });
+    dayplanText.value = '';
+    dayplanStatus.textContent = `Loaded ${result.bookings} cars from Tirehotel (${result.added} new, ${result.updated} already on the board).`;
+  } catch (error) {
+    showError(dayplanError, error);
+  }
+}
+
+dayplanImport.addEventListener('click', () => importDayplan(dayplanText.value));
+
+dayplanFile.addEventListener('change', async () => {
+  const file = dayplanFile.files?.[0];
+  if (!file) return;
+  const text = await file.text();
+  dayplanFile.value = '';
+  await importDayplan(text);
+});
+
+dayplanSync.addEventListener('click', async () => {
+  showError(dayplanError, null);
+  dayplanSync.disabled = true;
+  try {
+    const result = await request('/api/dayplan/sync', { method: 'POST', body: '{}' });
+    dayplanStatus.textContent = `Synced ${result.bookings} cars from Tirehotel.`;
+  } catch (error) {
+    showError(dayplanError, error);
+  } finally {
+    dayplanSync.disabled = false;
+  }
+});
+
 clearDeliveredButton.addEventListener('click', () => {
   request('/api/clear-delivered', { method: 'POST', body: '{}' }).catch((error) => showError(formError, error));
 });
@@ -270,6 +328,7 @@ fetch('/api/info')
   .then((info) => {
     const board = info.board[0];
     const staff = info.staff[0];
+    if (info.tirehotel?.syncConfigured) dayplanSync.hidden = false;
     share.innerHTML = board
       ? `<p><strong>Customers:</strong> open ${escapeHtml(board)} in Chrome and press F11.</p>
          <p><strong>You and the crew:</strong> open ${escapeHtml(staff)} on each computer, then pick Workshop or Office.</p>`
@@ -291,6 +350,7 @@ watchState((next) => {
     lastCars = carsKey;
     renderCars(next.cars);
     renderAlerts(next.cars);
+    renderDayplan(next.cars, next.dayplan);
   }
   const messageKey = JSON.stringify(next.messages) + desk;
   if (messageKey !== lastMessages) {

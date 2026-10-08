@@ -1,4 +1,4 @@
-import { escapeHtml, groups, labelFor } from './format.js';
+import { dayList, escapeHtml, formatClock, groups, labelFor, scheduleLine } from './format.js';
 import { watchState } from './live.js';
 
 const dot = document.querySelector('#dot');
@@ -8,10 +8,12 @@ const empty = document.querySelector('#empty');
 const readyZone = document.querySelector('#ready-zone');
 const workingZone = document.querySelector('#working-zone');
 const waitingZone = document.querySelector('#waiting-zone');
+const dayZone = document.querySelector('#day-zone');
 const readyHint = document.querySelector('#ready-hint');
 const readyGrid = document.querySelector('#ready');
 const workingGrid = document.querySelector('#working');
 const waitingRow = document.querySelector('#waiting');
+const dayGrid = document.querySelector('#day');
 
 const seen = new Set();
 let primed = false;
@@ -24,11 +26,26 @@ function tick() {
 
 function card(car, flash) {
   const name = car.name ? `<p class="name">${escapeHtml(car.name)}</p>` : '';
+  const when = scheduleLine(car);
+  const time = when ? `<p class="when">${escapeHtml(when)}</p>` : '';
   return `<article class="card ${car.status}${flash ? ' flash' : ''}">
     <span class="band" aria-hidden="true"></span>
     <p class="label">${escapeHtml(labelFor(car.status))}</p>
     <p class="plate">${escapeHtml(car.plate)}</p>
     ${name}
+    ${time}
+  </article>`;
+}
+
+function dayRow(car) {
+  const when = car.scheduledStart
+    ? `${formatClock(car.scheduledStart)}${car.scheduledEnd ? `–${formatClock(car.scheduledEnd)}` : ''}`
+    : 'Drop-in';
+  const extra = [car.service, car.status === 'waiting' ? '' : labelFor(car.status)].filter(Boolean).join(' · ');
+  return `<article class="slot ${car.status}">
+    <time>${escapeHtml(when)}</time>
+    <p class="plate">${escapeHtml(car.plate)}</p>
+    <p class="note">${escapeHtml(extra || 'Booked')}</p>
   </article>`;
 }
 
@@ -44,6 +61,9 @@ function fill(grid, cars, fresh) {
 
 function render(cars) {
   const view = groups(cars);
+  const today = dayList(cars);
+  const scheduled = today.filter((car) => car.scheduledStart);
+  const walkIns = view.waiting.filter((car) => !car.scheduledStart);
   const active = view.ready.length + view.working.length + view.waiting.length;
   const fresh = new Set();
   if (primed) {
@@ -58,13 +78,15 @@ function render(cars) {
   empty.hidden = active !== 0;
   readyZone.hidden = view.ready.length === 0;
   workingZone.hidden = view.working.length === 0;
-  waitingZone.hidden = view.waiting.length === 0;
+  dayZone.hidden = scheduled.length === 0;
+  waitingZone.hidden = walkIns.length === 0;
 
   const onTheWayOnly = view.ready.length > 0 && view.ready.every((car) => car.status === 'pickup');
   readyHint.textContent = onTheWayOnly ? 'On the way out to you' : 'We will bring the car out to you';
   if (view.ready.length) fill(readyGrid, view.ready, fresh);
   if (view.working.length) fill(workingGrid, view.working, fresh);
-  waitingRow.innerHTML = `<div class="chips">${view.waiting
+  if (scheduled.length) dayGrid.innerHTML = scheduled.map(dayRow).join('');
+  waitingRow.innerHTML = `<div class="chips">${walkIns
     .map((car) => `<span class="chip">${escapeHtml(car.plate)}</span>`)
     .join('')}</div>`;
 

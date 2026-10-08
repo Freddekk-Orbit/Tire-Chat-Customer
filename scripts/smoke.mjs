@@ -4,7 +4,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { addCar, addMessage, clearDelivered, emptyState, prune, setStatus } from '../lib/state.js';
-import { escapeHtml, groups } from '../public/format.js';
+import { applyBookings, parseDayplan } from '../lib/dayplan.js';
+import { dayKey, timeOnDay, zonedDateTimeToUtc } from '../lib/clock.js';
+import { escapeHtml, groups, scheduleLine } from '../public/format.js';
+import { readFile } from 'node:fs/promises';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const port = 8791;
@@ -84,6 +87,53 @@ function unitTests() {
   prune(stale, 36 * 60 * 60 * 1000 + 5);
   assert(stale.cars.length === 0 && stale.messages.length === 0, 'drops yesterday’s handed-over cars and chat');
   assert(addMessage(emptyState(), { from: 'lobby', text: 'hi' }).error, 'rejects an unknown desk');
+
+  const tz = 'Europe/Stockholm';
+  const summer = zonedDateTimeToUtc(2026, 10, 8, 8, 0, tz);
+  assert(summer === Date.UTC(2026, 9, 8, 6, 0, 0), 'maps a Stockholm morning slot to UTC in summer time');
+  assert(dayKey(summer, tz) === '2026-10-08', 'keeps the shop date for a booked slot');
+  assert(timeOnDay('2026-01-15', { hour: 8, minute: 0 }, tz) === Date.UTC(2026, 0, 15, 7, 0, 0), 'maps a winter morning slot');
+
+  const print = parseDayplan('08:00-08:20  ABC123  Anna Andersson  Däckhotell\n08:20 DEF456 Erik Skifte', {
+    date: '2026-10-08',
+    timeZone: tz,
+    slotMinutes: 20
+  });
+  assert(print.length === 2 && print[0].plate === 'ABC123' && print[0].name === 'Anna Andersson', 'reads a printed Tirehotel day list');
+  assert(print[0].scheduledStart === summer && print[0].scheduledEnd === summer + 20 * 60_000, 'keeps start and ready times from the printout');
+
+  const csv = parseDayplan('tid;regnr;kund;tjänst;sluttid\n07:00;ABC 123;Anna;Däckhotell;07:20', {
+    date: '2026-10-08',
+    timeZone: tz
+  });
+  assert(csv[0].plate === 'ABC 123' && csv[0].service === 'Däckhotell', 'reads a Tirehotel CSV export');
+
+  const ics = parseDayplan([
+    'BEGIN:VCALENDAR',
+    'BEGIN:VEVENT',
+    'DTSTART;TZID=Europe/Stockholm:20261008T080000',
+    'DTEND;TZID=Europe/Stockholm:20261008T082000',
+    'SUMMARY:ABC123 Anna Andersson',
+    'DESCRIPTION:Däckhotell',
+    'UID:aw-1',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\n'), { date: '2026-10-08', timeZone: tz });
+  assert(ics[0].externalId === 'aw-1' && ics[0].scheduledStart === summer, 'reads an Autowork calendar feed');
+
+  const json = parseDayplan({
+    bookings: [{ registrationNumber: 'GHI789', start: '2026-10-08T08:00:00+02:00', customerName: 'Lisa', serviceName: 'Däckskifte' }]
+  }, { date: '2026-10-08', timeZone: tz });
+  assert(json[0].plate === 'GHI789' && json[0].name === 'Lisa', 'reads a Tirehotel API booking list');
+
+  const board = emptyState();
+  const first = applyBookings(board, print, { now: summer, date: '2026-10-08', timeZone: tz, source: 'compilator' });
+  assert(first.added === 2 && board.cars[0].status === 'waiting', 'puts the day list on the board as waiting cars');
+  board.cars[0].status = 'working';
+  const again = applyBookings(board, print.slice(0, 1), { now: summer, date: '2026-10-08', timeZone: tz, source: 'compilator' });
+  assert(again.updated === 1 && board.cars[0].status === 'working', 'does not reset a car already in the workshop');
+  assert(!board.cars.some((car) => car.plate === 'DEF456'), 'drops a cancelled waiting booking on the next load');
+  assert(scheduleLine(board.cars[0]).includes('Ready around'), 'tells the customer when a car in the workshop should be ready');
 }
 
 async function main() {
@@ -101,11 +151,11 @@ async function main() {
     await waitForHealth();
     const board = await fetch(`http://127.0.0.1:${port}/status`);
     const crew = await fetch(`http://127.0.0.1:${port}/chat`);
-    assert(board.ok && (await board.text()).includes('Your car'), 'serves /status for customers');
-    assert(crew.ok && (await crew.text()).includes('Workshop chat'), 'serves /chat for the crew');
-    const root = await fetch(`http://127.0.0.1:${port}/`, { redirect: 'manual' });
+    assert(board.ok && (await board.text()).includes('When is my car ready?'), 'serves /status for customers');
+    assert(crew.ok && (await crew.text()).includes('Today from Tirehotel'), 'gives the desk a Tirehotel day loader');
+    const home = await fetch(`http://127.0.0.1:${port}/`, { redirect: 'manual' });
     const oldCrew = await fetch(`http://127.0.0.1:${port}/staff`, { redirect: 'manual' });
-    assert(root.status === 302 && root.headers.get('location') === '/status', 'sends / to /status');
+    assert(home.status === 302 && home.headers.get('location') === '/status', 'sends / to /status');
     assert(oldCrew.status === 302 && oldCrew.headers.get('location') === '/chat', 'sends /staff to /chat');
 
     const bad = await request('/api/cars', {
@@ -165,6 +215,18 @@ async function main() {
 
     const removed = await request('/api/clear-delivered', { method: 'POST' });
     assert(removed.response.ok && removed.data.removed === 1, 'clears a handed-over car');
+
+    const sample = await readFile(path.join(root, 'examples/tirehotel-day.csv'), 'utf8');
+    const imported = await request('/api/dayplan/import', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: sample })
+    });
+    assert(imported.response.ok && imported.data.added === 3, 'loads the sample Tirehotel day onto the board');
+    const loaded = await request('/api/state');
+    assert(loaded.data.cars.some((car) => car.plate === 'ABC 123' && car.scheduledStart), 'stores booked plates and timestamps');
+    const dayplan = await request('/api/dayplan');
+    assert(dayplan.data.bookings === 3 && dayplan.data.syncConfigured === false, 'reports the loaded Tirehotel day');
     stream.close();
   } catch (error) {
     console.error(logs);

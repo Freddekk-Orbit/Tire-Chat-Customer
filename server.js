@@ -12,6 +12,9 @@ import {
   removeCar,
   setStatus
 } from './lib/state.js';
+import { applyBookings, parseDayplan } from './lib/dayplan.js';
+import { fetchDayBookings, syncConfigured, tirehotelConfig } from './lib/compilator.js';
+import { dayKey, shopTimezone } from './lib/clock.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(root, 'public');
@@ -93,16 +96,58 @@ function info() {
   return {
     port,
     board: hosts.map((address) => `http://${address}:${port}/status`),
-    staff: hosts.map((address) => `http://${address}:${port}/chat`)
+    staff: hosts.map((address) => `http://${address}:${port}/chat`),
+    tirehotel: {
+      label: tirehotelConfig().label,
+      syncConfigured: syncConfigured()
+    }
   };
 }
 
-async function readJson(req) {
+function dayplanView() {
+  const timeZone = shopTimezone();
+  return {
+    ...state.dayplan,
+    timeZone,
+    today: dayKey(Date.now(), timeZone),
+    syncConfigured: syncConfigured(),
+    label: state.dayplan?.label || tirehotelConfig().label
+  };
+}
+
+async function importDayplan(input, options = {}) {
+  const bookings = parseDayplan(input, options);
+  if (!bookings.length) {
+    return { error: 'No booked cars with plates and times were found in that file.', status: 400 };
+  }
+  const result = applyBookings(state, bookings, options);
+  persist();
+  broadcast();
+  return result;
+}
+
+async function syncDayplan() {
+  const pulled = await fetchDayBookings();
+  if (pulled.error) return pulled;
+  if (!pulled.bookings.length) {
+    return { error: 'Tirehotel returned no bookings for today.', status: 404 };
+  }
+  const result = applyBookings(state, pulled.bookings, {
+    source: 'compilator',
+    date: pulled.date,
+    label: pulled.label
+  });
+  persist();
+  broadcast();
+  return result;
+}
+
+async function readJson(req, limit = 32_000) {
   const chunks = [];
   let size = 0;
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > 32_000) {
+    if (size > limit) {
       const error = new Error('That request is too large.');
       error.statusCode = 413;
       throw error;
@@ -203,6 +248,24 @@ const server = createServer(async (req, res) => {
       sendJson(res, 200, info());
       return;
     }
+    if (method === 'GET' && pathname === '/api/dayplan') {
+      sendJson(res, 200, dayplanView());
+      return;
+    }
+    if (method === 'POST' && pathname === '/api/dayplan/import') {
+      const body = await readJson(req, 400_000);
+      const result = await importDayplan(body.text ?? body, {
+        source: 'compilator',
+        label: body.label || tirehotelConfig().label
+      });
+      sendJson(res, result.error ? result.status : 200, result.error ? { error: result.error } : result);
+      return;
+    }
+    if (method === 'POST' && pathname === '/api/dayplan/sync') {
+      const result = await syncDayplan();
+      sendJson(res, result.error ? result.status : 200, result.error ? { error: result.error } : result);
+      return;
+    }
     if (method === 'GET' && pathname === '/events') {
       openEvents(req, res);
       return;
@@ -272,10 +335,26 @@ setInterval(() => {
   }
 }, 10_000).unref();
 
+const syncEvery = Number(process.env.TIREHOTEL_SYNC_MS) || 5 * 60 * 1000;
+if (syncConfigured()) {
+  const pull = () => {
+    syncDayplan().catch((error) => {
+      console.error('Tirehotel sync failed.', error);
+    });
+  };
+  setTimeout(pull, 1500).unref();
+  setInterval(pull, syncEvery).unref();
+}
+
 server.listen(port, host, () => {
   console.log(`Customers         http://localhost:${port}/status`);
   console.log(`Crew chat         http://localhost:${port}/chat`);
   for (const address of lanHosts()) {
     console.log(`Other computers   http://${address}:${port}/chat`);
+  }
+  if (syncConfigured()) {
+    console.log('Tirehotel         automatic sync is on');
+  } else {
+    console.log('Tirehotel         load today’s calendar from the desk, or set TIREHOTEL_ICS_URL / TIREHOTEL_API_URL');
   }
 });

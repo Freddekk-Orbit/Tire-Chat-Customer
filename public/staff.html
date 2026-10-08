@@ -23,6 +23,30 @@
     </header>
     <div id="alerts" class="alerts" aria-live="assertive"></div>
     <div class="layout">
+      <section class="panel dayplan">
+        <div class="dayplan-head">
+          <div>
+            <h2>Today from Tirehotel</h2>
+            <p id="dayplan-status">Load the same day list you print for the crew. Customers then see plates and ready times on /status.</p>
+          </div>
+          <div class="dayplan-actions">
+            <label class="file-button">
+              <input id="dayplan-file" type="file" accept=".csv,.txt,.ics,.json,text/calendar,text/plain,text/csv">
+              Load file
+            </label>
+            <button id="dayplan-sync" type="button" class="secondary" hidden>Sync now</button>
+          </div>
+        </div>
+        <label class="paste">
+          <span>Or paste the day’s calendar</span>
+          <textarea id="dayplan-text" rows="4" placeholder="08:00–08:20 ABC123 Anna Andersson Däckhotell"></textarea>
+        </label>
+        <div class="add-actions">
+          <button id="dayplan-import" type="button">Put today on the board</button>
+        </div>
+        <p id="dayplan-error" class="error" hidden></p>
+        <div id="dayplan-list" class="dayplan-list"></div>
+      </section>
       <section class="panel cars">
         <form id="add-form">
           <label>

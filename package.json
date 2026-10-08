@@ -2,7 +2,7 @@
   "name": "tire-chat-customer",
   "private": true,
   "type": "module",
-  "description": "Local tire-workshop board: customer screen plus workshop and office chat.",
+  "description": "Local tire-workshop board: Tirehotel day plan, customer ready times, and workshop chat.",
   "scripts": {
     "start": "node server.js",
     "test": "node scripts/smoke.mjs"
