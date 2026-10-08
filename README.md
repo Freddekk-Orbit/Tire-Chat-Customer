@@ -19,12 +19,12 @@ node server.js
 
 Leave that window open. The computer running it should stay awake.
 
-| Screen | Address |
+| Who | Address |
 | --- | --- |
-| Customer monitor | `http://localhost:8787/` then press F11 in Chrome |
-| Workshop and office | `http://localhost:8787/staff` |
+| Customers | `http://localhost:8787/status` then press F11 in Chrome |
+| You and the crew | `http://localhost:8787/chat` |
 
-On the other two computers, use this computer’s network address instead of `localhost`. The desk page prints that address. Pick **Workshop** on one computer and **Office** on the other. That choice is remembered. If those computers cannot open the page, allow Node through the firewall on the computer that runs the server.
+On the other two computers, use this computer’s network address instead of `localhost`. The chat page prints that address. Pick **Workshop** on one computer and **Office** on the other. That choice is remembered. If those computers cannot open the page, allow Node through the firewall on the computer that runs the server.
 
 The day’s cars and chat are saved in `data/state.json` on the computer running the server. Handed-over cars and old messages drop off after 36 hours.
 

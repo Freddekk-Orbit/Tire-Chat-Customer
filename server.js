@@ -92,8 +92,8 @@ function info() {
   const hosts = lanHosts();
   return {
     port,
-    board: hosts.map((address) => `http://${address}:${port}/`),
-    staff: hosts.map((address) => `http://${address}:${port}/staff`)
+    board: hosts.map((address) => `http://${address}:${port}/status`),
+    staff: hosts.map((address) => `http://${address}:${port}/chat`)
   };
 }
 
@@ -117,6 +117,11 @@ async function readJson(req) {
     error.statusCode = 400;
     throw error;
   }
+}
+
+function redirect(res, location) {
+  res.writeHead(302, { location, 'cache-control': 'no-store' });
+  res.end();
 }
 
 function sendJson(res, statusCode, body) {
@@ -234,7 +239,12 @@ const server = createServer(async (req, res) => {
     }
 
     if (method === 'GET' && (pathname === '/' || pathname === '/staff')) {
-      serveFile(res, pathname === '/' ? path.join(publicDir, 'board.html') : path.join(publicDir, 'staff.html'));
+      redirect(res, pathname === '/' ? '/status' : '/chat');
+      return;
+    }
+
+    if (method === 'GET' && (pathname === '/status' || pathname === '/chat')) {
+      serveFile(res, pathname === '/status' ? path.join(publicDir, 'board.html') : path.join(publicDir, 'staff.html'));
       return;
     }
 
@@ -263,9 +273,9 @@ setInterval(() => {
 }, 10_000).unref();
 
 server.listen(port, host, () => {
-  console.log(`Customer screen   http://localhost:${port}/`);
-  console.log(`Workshop & office http://localhost:${port}/staff`);
+  console.log(`Customers         http://localhost:${port}/status`);
+  console.log(`Crew chat         http://localhost:${port}/chat`);
   for (const address of lanHosts()) {
-    console.log(`Other computers   http://${address}:${port}/staff`);
+    console.log(`Other computers   http://${address}:${port}/chat`);
   }
 });

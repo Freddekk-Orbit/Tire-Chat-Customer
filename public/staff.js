@@ -271,9 +271,9 @@ fetch('/api/info')
     const board = info.board[0];
     const staff = info.staff[0];
     share.innerHTML = board
-      ? `<p><strong>Customer screen:</strong> open ${escapeHtml(board)} in Chrome and press F11.</p>
-         <p><strong>Workshop and office:</strong> open ${escapeHtml(staff)} on each computer, then pick which desk it is.</p>`
-      : '<p>Open the customer screen on this computer at /, full screen with F11. On the other computers, use this machine’s network address instead of localhost.</p>';
+      ? `<p><strong>Customers:</strong> open ${escapeHtml(board)} in Chrome and press F11.</p>
+         <p><strong>You and the crew:</strong> open ${escapeHtml(staff)} on each computer, then pick Workshop or Office.</p>`
+      : '<p>Customers use /status, full screen with F11. You and the crew use /chat. On the other computers, use this machine’s network address instead of localhost.</p>';
   })
   .catch(() => {
     share.textContent = 'Addresses will show here when the workshop computer is reachable.';

@@ -99,10 +99,14 @@ async function main() {
   server.stderr.on('data', (chunk) => { logs += chunk; });
   try {
     await waitForHealth();
-    const board = await fetch(`http://127.0.0.1:${port}/`);
-    const staff = await fetch(`http://127.0.0.1:${port}/staff`);
-    assert(board.ok && (await board.text()).includes('Your car'), 'serves the customer screen');
-    assert(staff.ok && (await staff.text()).includes('Workshop chat'), 'serves the desk');
+    const board = await fetch(`http://127.0.0.1:${port}/status`);
+    const crew = await fetch(`http://127.0.0.1:${port}/chat`);
+    assert(board.ok && (await board.text()).includes('Your car'), 'serves /status for customers');
+    assert(crew.ok && (await crew.text()).includes('Workshop chat'), 'serves /chat for the crew');
+    const root = await fetch(`http://127.0.0.1:${port}/`, { redirect: 'manual' });
+    const oldCrew = await fetch(`http://127.0.0.1:${port}/staff`, { redirect: 'manual' });
+    assert(root.status === 302 && root.headers.get('location') === '/status', 'sends / to /status');
+    assert(oldCrew.status === 302 && oldCrew.headers.get('location') === '/chat', 'sends /staff to /chat');
 
     const bad = await request('/api/cars', {
       method: 'POST',
