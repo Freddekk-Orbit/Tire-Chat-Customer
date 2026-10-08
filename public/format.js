@@ -1,9 +1,9 @@
 const LABELS = {
-  waiting: 'Waiting',
-  working: 'Working',
-  ready: 'Ready',
-  pickup: 'On the way',
-  delivered: 'Handed over'
+  waiting: 'Väntar',
+  working: 'I arbete',
+  ready: 'Klar',
+  pickup: 'På väg',
+  delivered: 'Utlämnad'
 };
 
 export function escapeHtml(value) {
@@ -26,31 +26,53 @@ export function setShopTimezone(timeZone) {
   if (timeZone) shopTimeZone = timeZone;
 }
 
-export function formatTime(ms) {
+function swedishClock(ms, timeZone = shopTimeZone) {
   return new Date(ms).toLocaleTimeString('sv-SE', {
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
-    timeZone: shopTimeZone
-  });
+    timeZone
+  }).replace(/\s/g, '').replace(':', '.');
+}
+
+export function formatTime(ms) {
+  return swedishClock(ms);
 }
 
 export function formatClock(ms) {
   if (!ms) return '';
-  return new Date(ms).toLocaleTimeString('sv-SE', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-    timeZone: shopTimeZone
+  return swedishClock(ms);
+}
+
+export function formatDate(value, timeZone = shopTimeZone) {
+  if (!value) return '';
+  const date = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T12:00:00`)
+    : new Date(value);
+  return date.toLocaleDateString('sv-SE', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone
   });
+}
+
+export function formatPlate(value) {
+  const compact = String(value ?? '').toUpperCase().replace(/\s+/g, '');
+  if (/^[A-ZÅÄÖ]{3}\d{2}[A-ZÅÄÖ0-9]$/.test(compact)) return `${compact.slice(0, 3)} ${compact.slice(3)}`;
+  return String(value ?? '').toUpperCase().replace(/\s+/g, ' ').trim();
+}
+
+export function carsLabel(count) {
+  return count === 1 ? '1 bil' : `${count} bilar`;
 }
 
 export function scheduleLine(car) {
   if (!car?.scheduledStart) return '';
   const start = formatClock(car.scheduledStart);
   const end = car.scheduledEnd ? formatClock(car.scheduledEnd) : '';
-  if (car.status === 'ready' || car.status === 'pickup') return `Booked ${start}`;
-  if (car.status === 'working') return end ? `Ready around ${end}` : `Booked ${start}`;
+  if (car.status === 'ready' || car.status === 'pickup') return `Bokad ${start}`;
+  if (car.status === 'working') return end ? `Klar ca ${end}` : `Bokad ${start}`;
   return end ? `${start}–${end}` : start;
 }
 

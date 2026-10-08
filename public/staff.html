@@ -1,48 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Workshop desk</title>
+    <title>Disken</title>
     <link rel="stylesheet" href="/staff.css">
   </head>
   <body>
     <header class="top">
       <div>
-        <p class="eyebrow">Tire workshop</p>
-        <h1>Desk</h1>
+        <p class="eyebrow">Däckverkstad</p>
+        <h1>Disken</h1>
       </div>
       <div class="who">
-        <span id="who-label">Which computer is this?</span>
-        <div class="switch" role="group" aria-label="This computer">
-          <button type="button" data-desk="workshop">Workshop</button>
-          <button type="button" data-desk="office">Office</button>
+        <span id="who-label">Vilken dator är det här?</span>
+        <div class="switch" role="group" aria-label="Den här datorn">
+          <button type="button" data-desk="workshop">Verkstad</button>
+          <button type="button" data-desk="office">Kontor</button>
         </div>
       </div>
-      <p id="live" class="live">Connecting…</p>
+      <p id="live" class="live">Ansluter…</p>
     </header>
     <div id="alerts" class="alerts" aria-live="assertive"></div>
     <div class="layout">
       <section class="panel dayplan">
         <div class="dayplan-head">
           <div>
-            <h2>Today from Tirehotel</h2>
-            <p id="dayplan-status">Load the same day list you print for the crew. Customers then see plates and ready times on /status.</p>
+            <h2>Idag från däckhotellet</h2>
+            <p id="dayplan-status">Ladda samma dagslista som ni skriver ut till gänget. Kunderna ser då regnr och klara-tider på kundskärmen.</p>
           </div>
           <div class="dayplan-actions">
             <label class="file-button">
               <input id="dayplan-file" type="file" accept=".csv,.txt,.ics,.json,text/calendar,text/plain,text/csv">
-              Load file
+              Ladda fil
             </label>
-            <button id="dayplan-sync" type="button" class="secondary" hidden>Sync now</button>
+            <button id="dayplan-sync" type="button" class="secondary" hidden>Synka nu</button>
           </div>
         </div>
         <label class="paste">
-          <span>Or paste the day’s calendar</span>
-          <textarea id="dayplan-text" rows="4" placeholder="08:00–08:20 ABC123 Anna Andersson Däckhotell"></textarea>
+          <span>Eller klistra in dagens kalender</span>
+          <textarea id="dayplan-text" rows="4" placeholder="08.00–08.20 ABC 123 Anna Andersson Däckhotell"></textarea>
         </label>
         <div class="add-actions">
-          <button id="dayplan-import" type="button">Put today on the board</button>
+          <button id="dayplan-import" type="button">Lägg in dagen på tavlan</button>
         </div>
         <p id="dayplan-error" class="error" hidden></p>
         <div id="dayplan-list" class="dayplan-list"></div>
@@ -50,36 +50,36 @@
       <section class="panel cars">
         <form id="add-form">
           <label>
-            <span>Plate</span>
+            <span>Regnr</span>
             <input name="plate" required maxlength="16" autocomplete="off" spellcheck="false" placeholder="ABC 123" autofocus>
           </label>
           <label>
-            <span>Customer</span>
-            <input name="name" maxlength="40" autocomplete="off" placeholder="Optional">
+            <span>Kund</span>
+            <input name="name" maxlength="40" autocomplete="off" placeholder="Valfritt">
           </label>
           <div class="add-actions">
-            <button type="submit" value="working">Start now</button>
-            <button type="submit" class="secondary" value="waiting">Wait list</button>
+            <button type="submit" value="working">Starta nu</button>
+            <button type="submit" class="secondary" value="waiting">Väntelista</button>
           </div>
         </form>
         <p id="form-error" class="error" hidden></p>
         <div id="car-list"></div>
         <details id="history">
-          <summary>Handed over</summary>
+          <summary>Utlämnade</summary>
           <div id="done-list"></div>
-          <button id="clear-delivered" type="button" class="text-button">Clear this list</button>
+          <button id="clear-delivered" type="button" class="text-button">Rensa listan</button>
         </details>
         <div id="share" class="share"></div>
       </section>
       <section class="panel chat">
         <div class="chat-head">
-          <h2>Workshop chat</h2>
-          <p>Use this between the workshop and the office.</p>
+          <h2>Verkstadschatt</h2>
+          <p>Används mellan verkstad och kontor.</p>
         </div>
         <div id="messages"></div>
         <form id="chat-form">
-          <input name="text" maxlength="500" autocomplete="off" placeholder="Message the other computer">
-          <button type="submit">Send</button>
+          <input name="text" maxlength="500" autocomplete="off" placeholder="Meddelande till den andra datorn">
+          <button type="submit">Skicka</button>
         </form>
         <p id="chat-error" class="error" hidden></p>
       </section>

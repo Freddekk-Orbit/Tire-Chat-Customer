@@ -2,7 +2,7 @@
   "name": "tire-chat-customer",
   "private": true,
   "type": "module",
-  "description": "Local tire-workshop board: Tirehotel day plan, customer ready times, and workshop chat.",
+  "description": "Lokal tavla för däckverkstad: dagens tider från däckhotellet, kundskärm och verkstadschatt.",
   "scripts": {
     "start": "node server.js",
     "test": "node scripts/smoke.mjs"

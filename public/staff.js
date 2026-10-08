@@ -1,13 +1,13 @@
-import { dayList, escapeHtml, formatClock, formatTime, groups, labelFor, scheduleLine, setShopTimezone } from './format.js';
+import { carsLabel, dayList, escapeHtml, formatClock, formatDate, formatPlate, formatTime, groups, labelFor, scheduleLine, setShopTimezone } from './format.js';
 import { watchState } from './live.js';
 
 const DESK_KEY = 'workshop-desk';
 const ACK_KEY = 'workshop-acked';
 const ACTIONS = [
-  ['working', 'Start'],
-  ['ready', 'Ready'],
-  ['pickup', 'On the way'],
-  ['delivered', 'Handed over']
+  ['working', 'Starta'],
+  ['ready', 'Klar'],
+  ['pickup', 'På väg'],
+  ['delivered', 'Utlämnad']
 ];
 const NEXT = { waiting: 'working', working: 'ready', ready: 'pickup', pickup: 'delivered' };
 
@@ -50,7 +50,7 @@ function paintDesk() {
   for (const button of deskButtons) {
     button.setAttribute('aria-pressed', String(button.dataset.desk === desk));
   }
-  whoLabel.textContent = desk ? `This computer is ${desk === 'workshop' ? 'Workshop' : 'Office'}` : 'Which computer is this?';
+  whoLabel.textContent = desk ? `Den här datorn är ${desk === 'workshop' ? 'Verkstad' : 'Kontor'}` : 'Vilken dator är det här?';
 }
 
 async function request(url, options = {}) {
@@ -59,7 +59,7 @@ async function request(url, options = {}) {
     ...options
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'The workshop computer did not accept that.');
+  if (!response.ok) throw new Error(data.error || 'Verkstadsdatorn tog inte emot det.');
   return data;
 }
 
@@ -112,13 +112,13 @@ function renderAlerts(cars) {
     const driving = car.status === 'pickup';
     return `<article class="alert">
       <div>
-        <strong>${escapeHtml(car.plate)}${name}</strong>
-        <p>${driving ? 'On the way out to the customer.' : 'Ready. Drive the car out to the customer.'}</p>
+        <strong>${escapeHtml(formatPlate(car.plate))}${name}</strong>
+        <p>${driving ? 'På väg ut till kunden.' : 'Klar. Kör ut bilen till kunden.'}</p>
       </div>
       <div class="alert-actions">
-        ${driving ? '' : '<button type="button" data-alert="pickup">On the way</button>'}
-        <button type="button" data-alert="delivered">Handed over</button>
-        <button type="button" class="ghost" data-alert="hide">Hide</button>
+        ${driving ? '' : '<button type="button" data-alert="pickup">På väg</button>'}
+        <button type="button" data-alert="delivered">Utlämnad</button>
+        <button type="button" class="ghost" data-alert="hide">Dölj</button>
       </div>
     </article>`;
   }).join('');
@@ -143,16 +143,16 @@ function actionButtons(car) {
   return ACTIONS.map(([status, label]) => {
     const className = status === car.status ? 'current' : status === next ? '' : 'ghost';
     return `<button type="button" class="${className}" data-id="${car.id}" data-status="${status}">${label}</button>`;
-  }).join('') + `<button type="button" class="danger" data-id="${car.id}" data-remove="true">Remove</button>`;
+  }).join('') + `<button type="button" class="danger" data-id="${car.id}" data-remove="true">Ta bort</button>`;
 }
 
 function carRow(car) {
-  const name = car.name ? escapeHtml(car.name) : 'No name';
+  const name = car.name ? escapeHtml(car.name) : 'Inget namn';
   const booked = scheduleLine(car);
   const extra = [name, labelFor(car.status), booked || formatTime(car.updatedAt), car.service].filter(Boolean).join(' · ');
   return `<article class="car">
     <div>
-      <p class="plate">${escapeHtml(car.plate)}</p>
+      <p class="plate">${escapeHtml(formatPlate(car.plate))}</p>
       <p class="meta">${escapeHtml(extra)}</p>
     </div>
     <div class="row-actions">${actionButtons(car)}</div>
@@ -163,48 +163,48 @@ function renderDayplan(cars, dayplan = {}) {
   const booked = dayList(cars).filter((car) => car.scheduledStart);
   const when = dayplan.importedAt ? formatTime(dayplan.importedAt) : '';
   if (dayplan.bookings) {
-    dayplanStatus.textContent = `${dayplan.label || 'Tirehotel'} · ${dayplan.bookings} cars for ${dayplan.date}${when ? ` · loaded ${when}` : ''}`;
+    dayplanStatus.textContent = `${dayplan.label || 'Däckhotellet'} · ${carsLabel(dayplan.bookings)} den ${formatDate(dayplan.date)}${when ? ` · inläst ${when}` : ''}`;
   } else {
-    dayplanStatus.textContent = 'Load the same day list you print for the crew. Customers then see plates and ready times on /status.';
+    dayplanStatus.textContent = 'Ladda samma dagslista som ni skriver ut till gänget. Kunderna ser då regnr och klara-tider på kundskärmen.';
   }
   dayplanList.innerHTML = booked.map((car) => `<div class="plan-row ${car.status}">
     <time>${escapeHtml(formatClock(car.scheduledStart))}${car.scheduledEnd ? `–${escapeHtml(formatClock(car.scheduledEnd))}` : ''}</time>
-    <strong>${escapeHtml(car.plate)}</strong>
+    <strong>${escapeHtml(formatPlate(car.plate))}</strong>
     <span>${escapeHtml([car.name, car.service, labelFor(car.status)].filter(Boolean).join(' · '))}</span>
-  </div>`).join('') || '<p class="empty-note">No timed bookings on the board yet.</p>';
+  </div>`).join('') || '<p class="empty-note">Inga tidsbokningar på tavlan ännu.</p>';
 }
 
 function renderCars(cars) {
   const view = groups(cars);
   const sections = [
-    ['Drive out', view.ready],
-    ['In the workshop', view.working],
-    ['Waiting', view.waiting]
+    ['Kör ut', view.ready],
+    ['I verkstaden', view.working],
+    ['Väntar', view.waiting]
   ];
   carList.innerHTML = sections.map(([title, list]) => {
     if (!list.length) return '';
     return `<section class="group"><h2>${title}</h2>${list.map(carRow).join('')}</section>`;
-  }).join('') || '<p class="empty-note">No cars on the board yet.</p>';
+  }).join('') || '<p class="empty-note">Inga bilar på tavlan ännu.</p>';
 
   doneList.innerHTML = view.delivered.map((car) => `<div class="history-row">
     <div>
-      <strong>${escapeHtml(car.plate)}</strong>
+      <strong>${escapeHtml(formatPlate(car.plate))}</strong>
       <span class="meta"> ${car.name ? escapeHtml(car.name) : ''} · ${escapeHtml(formatTime(car.updatedAt))}</span>
     </div>
-    <button type="button" class="ghost" data-id="${car.id}" data-status="pickup">Undo</button>
-  </div>`).join('') || '<p class="empty-note">None yet today.</p>';
+    <button type="button" class="ghost" data-id="${car.id}" data-status="pickup">Ångra</button>
+  </div>`).join('') || '<p class="empty-note">Inga ännu idag.</p>';
 }
 
 function renderMessages(list) {
   const stick = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
   messages.innerHTML = list.map((message) => {
     const mine = message.from === desk;
-    const who = message.from === 'workshop' ? 'Workshop' : 'Office';
+    const who = message.from === 'workshop' ? 'Verkstad' : 'Kontor';
     return `<article class="msg ${message.from}${mine ? ' mine' : ''}">
       <p class="who">${who} · ${escapeHtml(formatTime(message.at))}</p>
       <p>${escapeHtml(message.text)}</p>
     </article>`;
-  }).join('') || '<p class="empty-note">No messages yet.</p>';
+  }).join('') || '<p class="empty-note">Inga meddelanden ännu.</p>';
   if (stick || lastMessages === '') messages.scrollTop = messages.scrollHeight;
 }
 
@@ -258,7 +258,7 @@ form.addEventListener('submit', async (event) => {
 chatForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!desk) {
-    showError(chatError, new Error('Choose Workshop or Office first.'));
+    showError(chatError, new Error('Välj Verkstad eller Kontor först.'));
     return;
   }
   const text = new FormData(chatForm).get('text');
@@ -279,7 +279,8 @@ async function importDayplan(text) {
   try {
     const result = await request('/api/dayplan/import', { method: 'POST', body: JSON.stringify({ text }) });
     dayplanText.value = '';
-    dayplanStatus.textContent = `Loaded ${result.bookings} cars from Tirehotel (${result.added} new, ${result.updated} already on the board).`;
+    const addedText = result.added === 1 ? '1 ny' : `${result.added} nya`;
+    dayplanStatus.textContent = `Laddade ${carsLabel(result.bookings)} från däckhotellet (${addedText}, ${result.updated} fanns redan på tavlan).`;
   } catch (error) {
     showError(dayplanError, error);
   }
@@ -300,7 +301,7 @@ dayplanSync.addEventListener('click', async () => {
   dayplanSync.disabled = true;
   try {
     const result = await request('/api/dayplan/sync', { method: 'POST', body: '{}' });
-    dayplanStatus.textContent = `Synced ${result.bookings} cars from Tirehotel.`;
+    dayplanStatus.textContent = `Synkade ${carsLabel(result.bookings)} från däckhotellet.`;
   } catch (error) {
     showError(dayplanError, error);
   } finally {
@@ -330,12 +331,12 @@ fetch('/api/info')
     const staff = info.staff[0];
     if (info.tirehotel?.syncConfigured) dayplanSync.hidden = false;
     share.innerHTML = board
-      ? `<p><strong>Customers:</strong> open ${escapeHtml(board)} in Chrome and press F11.</p>
-         <p><strong>You and the crew:</strong> open ${escapeHtml(staff)} on each computer, then pick Workshop or Office.</p>`
-      : '<p>Customers use /status, full screen with F11. You and the crew use /chat. On the other computers, use this machine’s network address instead of localhost.</p>';
+      ? `<p><strong>Kunder:</strong> öppna ${escapeHtml(board)} i Chrome och tryck på F11.</p>
+         <p><strong>Ni i gänget:</strong> öppna ${escapeHtml(staff)} på varje dator och välj Verkstad eller Kontor.</p>`
+      : '<p>Kunder använder /status i helskärm med F11. Ni i gänget använder /chat. På de andra datorerna, använd den här datorns nätverksadress i stället för localhost.</p>';
   })
   .catch(() => {
-    share.textContent = 'Addresses will show here when the workshop computer is reachable.';
+    share.textContent = 'Adresser visas här när verkstadsdatorn går att nå.';
   });
 
 paintDesk();
@@ -359,6 +360,6 @@ watchState((next) => {
     renderMessages(next.messages);
   }
 }, (status) => {
-  live.textContent = status === 'live' ? 'Live' : 'Reconnecting…';
+  live.textContent = status === 'live' ? 'Ansluten' : 'Återansluter…';
   live.classList.toggle('ok', status === 'live');
 });

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { addCar, addMessage, clearDelivered, emptyState, prune, setStatus } from '../lib/state.js';
 import { applyBookings, parseDayplan } from '../lib/dayplan.js';
 import { dayKey, timeOnDay, zonedDateTimeToUtc } from '../lib/clock.js';
-import { escapeHtml, groups, scheduleLine } from '../public/format.js';
+import { carsLabel, escapeHtml, formatClock, formatDate, formatPlate, groups, scheduleLine } from '../public/format.js';
 import { readFile } from 'node:fs/promises';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -133,7 +133,11 @@ function unitTests() {
   const again = applyBookings(board, print.slice(0, 1), { now: summer, date: '2026-10-08', timeZone: tz, source: 'compilator' });
   assert(again.updated === 1 && board.cars[0].status === 'working', 'does not reset a car already in the workshop');
   assert(!board.cars.some((car) => car.plate === 'DEF456'), 'drops a cancelled waiting booking on the next load');
-  assert(scheduleLine(board.cars[0]).includes('Ready around'), 'tells the customer when a car in the workshop should be ready');
+  assert(scheduleLine(board.cars[0]).includes('Klar ca'), 'berättar för kunden när en bil i verkstaden ska vara klar');
+  assert(formatClock(summer) === '08.00', 'skriver klockslag på svenska med punkt');
+  assert(formatDate('2026-10-08') === '8 oktober 2026', 'skriver datum på svenska');
+  assert(formatPlate('ABC123') === 'ABC 123' && formatPlate('abc 12a') === 'ABC 12A', 'skriver svenska regnr med mellanslag');
+  assert(carsLabel(1) === '1 bil' && carsLabel(3) === '3 bilar', 'böjer ordet bil');
 }
 
 async function main() {
@@ -151,8 +155,8 @@ async function main() {
     await waitForHealth();
     const board = await fetch(`http://127.0.0.1:${port}/status`);
     const crew = await fetch(`http://127.0.0.1:${port}/chat`);
-    assert(board.ok && (await board.text()).includes('When is my car ready?'), 'serves /status for customers');
-    assert(crew.ok && (await crew.text()).includes('Today from Tirehotel'), 'gives the desk a Tirehotel day loader');
+    assert(board.ok && (await board.text()).includes('När är min bil klar?'), 'visar kundskärmen på svenska');
+    assert(crew.ok && (await crew.text()).includes('Idag från däckhotellet'), 'visar disken för dagens däckhotell');
     const home = await fetch(`http://127.0.0.1:${port}/`, { redirect: 'manual' });
     const oldCrew = await fetch(`http://127.0.0.1:${port}/staff`, { redirect: 'manual' });
     assert(home.status === 302 && home.headers.get('location') === '/status', 'sends / to /status');

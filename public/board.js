@@ -1,4 +1,4 @@
-import { dayList, escapeHtml, formatClock, formatTime, groups, labelFor, scheduleLine, setShopTimezone } from './format.js';
+import { dayList, escapeHtml, formatClock, formatPlate, formatTime, groups, labelFor, scheduleLine, setShopTimezone } from './format.js';
 import { watchState } from './live.js';
 
 const dot = document.querySelector('#dot');
@@ -32,7 +32,7 @@ function card(car, flash) {
   return `<article class="card ${car.status}${flash ? ' flash' : ''}">
     <span class="band" aria-hidden="true"></span>
     <p class="label">${escapeHtml(labelFor(car.status))}</p>
-    <p class="plate">${escapeHtml(car.plate)}</p>
+    <p class="plate">${escapeHtml(formatPlate(car.plate))}</p>
     ${name}
     ${time}
   </article>`;
@@ -45,8 +45,8 @@ function dayRow(car) {
   const extra = [car.service, car.status === 'waiting' ? '' : labelFor(car.status)].filter(Boolean).join(' · ');
   return `<article class="slot ${car.status}">
     <time>${escapeHtml(when)}</time>
-    <p class="plate">${escapeHtml(car.plate)}</p>
-    <p class="note">${escapeHtml(extra || 'Booked')}</p>
+    <p class="plate">${escapeHtml(formatPlate(car.plate))}</p>
+    <p class="note">${escapeHtml(extra || 'Bokad')}</p>
   </article>`;
 }
 
@@ -54,7 +54,7 @@ function fill(grid, cars, fresh) {
   const bucket = cars.length <= 1 ? '1' : cars.length === 2 ? '2' : 'more';
   grid.dataset.n = bucket;
   if (!cars.length) {
-    grid.innerHTML = '<p class="quiet">None right now</p>';
+    grid.innerHTML = '<p class="quiet">Inga just nu</p>';
     return;
   }
   grid.innerHTML = cars.map((car) => card(car, fresh.has(car.id))).join('');
@@ -83,16 +83,16 @@ function render(cars) {
   waitingZone.hidden = walkIns.length === 0;
 
   const onTheWayOnly = view.ready.length > 0 && view.ready.every((car) => car.status === 'pickup');
-  readyHint.textContent = onTheWayOnly ? 'On the way out to you' : 'We will bring the car out to you';
+  readyHint.textContent = onTheWayOnly ? 'På väg ut till dig' : 'Vi kör ut bilen till dig';
   if (view.ready.length) fill(readyGrid, view.ready, fresh);
   if (view.working.length) fill(workingGrid, view.working, fresh);
   if (scheduled.length) dayGrid.innerHTML = scheduled.map(dayRow).join('');
   waitingRow.innerHTML = `<div class="chips">${walkIns
-    .map((car) => `<span class="chip">${escapeHtml(car.plate)}</span>`)
+    .map((car) => `<span class="chip">${escapeHtml(formatPlate(car.plate))}</span>`)
     .join('')}</div>`;
 
   const readyCount = view.ready.length;
-  document.title = readyCount ? `(${readyCount} ready) Workshop` : 'Workshop';
+  document.title = readyCount ? `(${readyCount} klara) Verkstad` : 'Verkstad';
 }
 
 tick();
@@ -108,6 +108,6 @@ watchState((state) => {
   dot.classList.toggle('live', status === 'live');
   connection.hidden = status === 'live';
   connection.textContent = status === 'reconnecting'
-    ? 'Reconnecting to the workshop computer…'
-    : 'Connecting to the workshop computer…';
+    ? 'Återansluter till verkstadsdatorn…'
+    : 'Ansluter till verkstadsdatorn…';
 });

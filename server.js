@@ -40,7 +40,7 @@ function loadState() {
       } catch {
         // Keep going with an empty board if the bad file cannot be moved.
       }
-      console.error('Started with an empty board because the saved file could not be read.');
+      console.error('Startade med tom tavla eftersom sparfilen inte gick att läsa.');
     }
     return emptyState();
   }
@@ -56,7 +56,7 @@ function persist() {
       await fs.promises.rename(temporary, dataFile);
     })
     .catch((error) => {
-      console.error('Could not save the board.', error);
+      console.error('Kunde inte spara tavlan.', error);
     });
 }
 
@@ -118,7 +118,7 @@ function dayplanView() {
 async function importDayplan(input, options = {}) {
   const bookings = parseDayplan(input, options);
   if (!bookings.length) {
-    return { error: 'No booked cars with plates and times were found in that file.', status: 400 };
+    return { error: 'Inga bokade bilar med regnr och tid hittades i filen.', status: 400 };
   }
   const result = applyBookings(state, bookings, options);
   persist();
@@ -130,7 +130,7 @@ async function syncDayplan() {
   const pulled = await fetchDayBookings();
   if (pulled.error) return pulled;
   if (!pulled.bookings.length) {
-    return { error: 'Tirehotel returned no bookings for today.', status: 404 };
+    return { error: 'Däckhotellet returnerade inga bokningar för idag.', status: 404 };
   }
   const result = applyBookings(state, pulled.bookings, {
     source: 'compilator',
@@ -148,7 +148,7 @@ async function readJson(req, limit = 32_000) {
   for await (const chunk of req) {
     size += chunk.length;
     if (size > limit) {
-      const error = new Error('That request is too large.');
+      const error = new Error('Begäran är för stor.');
       error.statusCode = 413;
       throw error;
     }
@@ -158,7 +158,7 @@ async function readJson(req, limit = 32_000) {
   try {
     return JSON.parse(Buffer.concat(chunks).toString('utf8'));
   } catch {
-    const error = new Error('That request was not valid.');
+    const error = new Error('Begäran var inte giltig.');
     error.statusCode = 400;
     throw error;
   }
@@ -319,9 +319,9 @@ const server = createServer(async (req, res) => {
       }
     }
 
-    sendJson(res, 404, { error: 'Not found.' });
+    sendJson(res, 404, { error: 'Hittades inte.' });
   } catch (error) {
-    sendJson(res, error.statusCode || 500, { error: error.statusCode ? error.message : 'Something went wrong.' });
+    sendJson(res, error.statusCode || 500, { error: error.statusCode ? error.message : 'Något gick fel.' });
   }
 });
 
@@ -339,7 +339,7 @@ const syncEvery = Number(process.env.TIREHOTEL_SYNC_MS) || 5 * 60 * 1000;
 if (syncConfigured()) {
   const pull = () => {
     syncDayplan().catch((error) => {
-      console.error('Tirehotel sync failed.', error);
+      console.error('Synken mot däckhotellet misslyckades.', error);
     });
   };
   setTimeout(pull, 1500).unref();
@@ -347,14 +347,14 @@ if (syncConfigured()) {
 }
 
 server.listen(port, host, () => {
-  console.log(`Customers         http://localhost:${port}/status`);
-  console.log(`Crew chat         http://localhost:${port}/chat`);
+  console.log(`Kunder            http://localhost:${port}/status`);
+  console.log(`Verkstadschatt    http://localhost:${port}/chat`);
   for (const address of lanHosts()) {
-    console.log(`Other computers   http://${address}:${port}/chat`);
+    console.log(`Andra datorer     http://${address}:${port}/chat`);
   }
   if (syncConfigured()) {
-    console.log('Tirehotel         automatic sync is on');
+    console.log('Däckhotellet      automatisk synk är på');
   } else {
-    console.log('Tirehotel         load today’s calendar from the desk, or set TIREHOTEL_ICS_URL / TIREHOTEL_API_URL');
+    console.log('Däckhotellet      ladda dagens kalender från disken, eller sätt TIREHOTEL_ICS_URL / TIREHOTEL_API_URL');
   }
 });
