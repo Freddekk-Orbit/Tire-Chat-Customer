@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Workshop desk</title>
+    <link rel="stylesheet" href="/staff.css">
+  </head>
+  <body>
+    <header class="top">
+      <div>
+        <p class="eyebrow">Tire workshop</p>
+        <h1>Desk</h1>
+      </div>
+      <div class="who">
+        <span id="who-label">Which computer is this?</span>
+        <div class="switch" role="group" aria-label="This computer">
+          <button type="button" data-desk="workshop">Workshop</button>
+          <button type="button" data-desk="office">Office</button>
+        </div>
+      </div>
+      <p id="live" class="live">Connecting…</p>
+    </header>
+    <div id="alerts" class="alerts" aria-live="assertive"></div>
+    <div class="layout">
+      <section class="panel cars">
+        <form id="add-form">
+          <label>
+            <span>Plate</span>
+            <input name="plate" required maxlength="16" autocomplete="off" spellcheck="false" placeholder="ABC 123" autofocus>
+          </label>
+          <label>
+            <span>Customer</span>
+            <input name="name" maxlength="40" autocomplete="off" placeholder="Optional">
+          </label>
+          <div class="add-actions">
+            <button type="submit" value="working">Start now</button>
+            <button type="submit" class="secondary" value="waiting">Wait list</button>
+          </div>
+        </form>
+        <p id="form-error" class="error" hidden></p>
+        <div id="car-list"></div>
+        <details id="history">
+          <summary>Handed over</summary>
+          <div id="done-list"></div>
+          <button id="clear-delivered" type="button" class="text-button">Clear this list</button>
+        </details>
+        <div id="share" class="share"></div>
+      </section>
+      <section class="panel chat">
+        <div class="chat-head">
+          <h2>Workshop chat</h2>
+          <p>Use this between the workshop and the office.</p>
+        </div>
+        <div id="messages"></div>
+        <form id="chat-form">
+          <input name="text" maxlength="500" autocomplete="off" placeholder="Message the other computer">
+          <button type="submit">Send</button>
+        </form>
+        <p id="chat-error" class="error" hidden></p>
+      </section>
+    </div>
+    <script type="module" src="/staff.js"></script>
+  </body>
+</html>
