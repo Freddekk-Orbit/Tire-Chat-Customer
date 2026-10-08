@@ -1,4 +1,4 @@
-import { dayList, escapeHtml, formatClock, groups, labelFor, scheduleLine } from './format.js';
+import { dayList, escapeHtml, formatClock, formatTime, groups, labelFor, scheduleLine, setShopTimezone } from './format.js';
 import { watchState } from './live.js';
 
 const dot = document.querySelector('#dot');
@@ -20,8 +20,9 @@ let primed = false;
 let lastCars = '';
 
 function tick() {
-  clock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  clock.dateTime = new Date().toISOString();
+  const now = Date.now();
+  clock.textContent = formatTime(now);
+  clock.dateTime = new Date(now).toISOString();
 }
 
 function card(car, flash) {
@@ -98,6 +99,7 @@ tick();
 setInterval(tick, 1000);
 
 watchState((state) => {
+  setShopTimezone(state.timeZone);
   const key = JSON.stringify(state.cars);
   if (key === lastCars) return;
   lastCars = key;

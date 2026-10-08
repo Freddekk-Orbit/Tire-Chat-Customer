@@ -288,6 +288,8 @@ body:has(#ready-zone[hidden]):has(#working-zone[hidden]) .chip {
   color: var(--muted);
 }
 
+.empty[hidden] { display: none; }
+
 .empty-title {
   margin: 0 0 0.4rem;
   color: var(--ink);

@@ -1,4 +1,4 @@
-import { dayList, escapeHtml, formatClock, formatTime, groups, labelFor, scheduleLine } from './format.js';
+import { dayList, escapeHtml, formatClock, formatTime, groups, labelFor, scheduleLine, setShopTimezone } from './format.js';
 import { watchState } from './live.js';
 
 const DESK_KEY = 'workshop-desk';
@@ -344,6 +344,7 @@ document.addEventListener('pointerdown', () => {
 }, { once: true });
 
 watchState((next) => {
+  setShopTimezone(next.timeZone);
   latest = next;
   const carsKey = JSON.stringify(next.cars);
   if (carsKey !== lastCars) {

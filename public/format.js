@@ -20,13 +20,29 @@ export function labelFor(status) {
   return LABELS[status] || status;
 }
 
+let shopTimeZone = 'Europe/Stockholm';
+
+export function setShopTimezone(timeZone) {
+  if (timeZone) shopTimeZone = timeZone;
+}
+
 export function formatTime(ms) {
-  return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return new Date(ms).toLocaleTimeString('sv-SE', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone: shopTimeZone
+  });
 }
 
 export function formatClock(ms) {
   if (!ms) return '';
-  return new Date(ms).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  return new Date(ms).toLocaleTimeString('sv-SE', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone: shopTimeZone
+  });
 }
 
 export function scheduleLine(car) {
