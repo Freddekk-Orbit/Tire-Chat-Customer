@@ -1,0 +1,13 @@
+{
+  "name": "tire-chat-customer",
+  "private": true,
+  "type": "module",
+  "description": "Lokal tavla för däckverkstad: dagens tider från däckhotellet, kundskärm och verkstadschatt.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node scripts/smoke.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

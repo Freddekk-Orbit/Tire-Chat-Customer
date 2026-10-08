@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verkstad</title>
+    <link rel="stylesheet" href="/board.css">
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <span id="dot" class="dot" aria-hidden="true"></span>
+        <div>
+          <p class="eyebrow">Däckverkstad</p>
+          <h1>När är min bil klar?</h1>
+        </div>
+      </div>
+      <time id="clock"></time>
+    </header>
+    <p id="connection" class="connection" hidden>Återansluter till verkstadsdatorn…</p>
+    <main>
+      <section id="empty" class="empty" hidden>
+        <p class="empty-title">Tavlan är tom</p>
+        <p>Dagens bokade bilar visas här med tid. När jobbet är klart flyttas de till Klar.</p>
+      </section>
+      <section id="ready-zone" class="zone ready-zone" hidden>
+        <div class="zone-head">
+          <h2>Klar</h2>
+          <p id="ready-hint" class="hint">Vi kör ut bilen till dig</p>
+        </div>
+        <div id="ready" class="grid" aria-live="polite"></div>
+      </section>
+      <section id="working-zone" class="zone" hidden>
+        <div class="zone-head">
+          <h2>I verkstaden</h2>
+          <p class="hint">Vald och under arbete</p>
+        </div>
+        <div id="working" class="grid"></div>
+      </section>
+      <section id="day-zone" class="zone day-zone" hidden>
+        <div class="zone-head">
+          <h2>Idag</h2>
+          <p class="hint">Hitta ditt regnr och din bokade tid</p>
+        </div>
+        <div id="day" class="day-list"></div>
+      </section>
+      <footer id="waiting-zone" class="queue" hidden>
+        <span>Väntar</span>
+        <div id="waiting"></div>
+      </footer>
+    </main>
+    <script type="module" src="/board.js"></script>
+  </body>
+</html>
